@@ -30,7 +30,7 @@ int main()
 	}
 
 	/* Get video width and height. */
-	const int videoWidth = (int)capturedVideo.get(CV_CAP_PROP_FRAME_WIDTH);
+	const int videoWidth  = (int)capturedVideo.get(CV_CAP_PROP_FRAME_WIDTH);
 	const int videoHeight = (int)capturedVideo.get(CV_CAP_PROP_FRAME_HEIGHT);
 
 	/* A container which will hold a video frame for
@@ -39,7 +39,7 @@ int main()
 
 	/* SLIC algorithm parameters. */
 	int spatialDistanceWeight = 60;
-	int superpixelNumber = 600;
+	int superpixelNumber      = 600;
 
 	/* Round the sampling step to the nearest integer. */
 	int stepSLIC = (int)(sqrt((videoHeight * videoWidth) / superpixelNumber) + 0.5);
