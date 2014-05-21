@@ -1,8 +1,8 @@
 /****************************************************************************/
-/*																			*/
-/* Algorithm: http://ivrg.epfl.ch/research/superpixels						*/
-/* Original OpevCV implementation: http://github.com/PSMM/SLIC-Superpixels	*/
-/*																			*/
+/*                                                                          */
+/* Algorithm: http://ivrg.epfl.ch/research/superpixels                      */
+/* Original OpevCV implementation: http://github.com/PSMM/SLIC-Superpixels  */
+/*                                                                          */
 /****************************************************************************/
 
 #include <opencv/cv.h>
@@ -47,9 +47,9 @@ class SLIC
 
 		/* Initialize matrices' elements and variables. */
 		void initializeSLICData(
-			const cv::Mat			LABImage,
-			const int				samplingStep,
-			const int				spatialDistanceWeight,
+			const cv::Mat		LABImage,
+			const int		samplingStep,
+			const int		spatialDistanceWeight,
 			const MatrixOfDouble2D	previousCentreMatrix);
 
 		/* Find the pixel with the lowest gradient in a 3x3 surrounding. */
@@ -59,7 +59,7 @@ class SLIC
 
 		/* Compute the distance between a cluster's centre and an individual pixel. */
 		double computeDistance(
-			const int		centreIndex,
+			const int	centreIndex,
 			const cv::Point pixelPosition,
 			const cv::Vec3b pixelColor);
 
@@ -76,9 +76,9 @@ class SLIC
 
 		/* Generate superpixels for an image. */
 		MatrixOfDouble2D createSuperpixels(
-			const cv::Mat			LABImage,
-			const int				samplingStep,
-			const int				spatialDistanceWeight,
+			const cv::Mat		LABImage,
+			const int		samplingStep,
+			const int		spatialDistanceWeight,
 			const MatrixOfDouble2D	previousCentreMatrix);
 
 		/* Enforce connectivity among the superpixels of an image. */
@@ -89,13 +89,13 @@ class SLIC
 
 		/* Draw contours around created superpixels. */
 		void drawClusterContours(
-			cv::Mat				LABImage,
-			const cv::Vec3b		contourColor);
+			cv::Mat		LABImage,
+			const cv::Vec3b	contourColor);
 
 		/* Draw superpixels' centres. */
 		void drawClusterCentres(
-			cv::Mat				LABImage,
-			const cv::Scalar	centreColor);
+			cv::Mat		 LABImage,
+			const cv::Scalar centreColor);
 };
 
 #endif
