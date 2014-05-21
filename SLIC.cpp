@@ -23,8 +23,8 @@ SLIC::~SLIC()
 void SLIC::clearSLICData()
 {
 	/* Reset variables. */
-	this->pixelsNumber	    = 0;
-	this->samplingStep	    = 0;
+	this->pixelsNumber          = 0;
+	this->samplingStep          = 0;
 	this->spatialDistanceWeight = 0;
 
 	/* Erase all matrices' elements. */
@@ -35,17 +35,17 @@ void SLIC::clearSLICData()
 }
 
 void SLIC::initializeSLICData(
-	const cv::Mat		LABImage,
-	const int		samplingStep,
-	const int		spatialDistanceWeight,
+	const cv::Mat           LABImage,
+	const int               samplingStep,
+	const int               spatialDistanceWeight,
 	const MatrixOfDouble2D	previousCentreMatrix)
 {
 	/* Clear previous data before initialization. */
 	clearSLICData();
 
 	/* Initialize variables. */
-	this->pixelsNumber	    = LABImage.rows * LABImage.cols;
-	this->samplingStep	    = samplingStep;
+	this->pixelsNumber          = LABImage.rows * LABImage.cols;
+	this->samplingStep          = samplingStep;
 	this->spatialDistanceWeight = spatialDistanceWeight;
 
 	/* Initialize the clusters and the distances matrices. */
@@ -71,7 +71,7 @@ void SLIC::initializeSLICData(
 				/* Create a centre [l, a, b, x, y] and insert it in the centres vector. */
 				vector<double> tempCentre;
 
-				/* Generate the center vector. */
+				/* Generate the centre vector. */
 				tempCentre.push_back(tempPixelColor.val[0]);
 				tempCentre.push_back(tempPixelColor.val[1]);
 				tempCentre.push_back(tempPixelColor.val[2]);
@@ -94,7 +94,7 @@ void SLIC::initializeSLICData(
 }
 
 Point SLIC::findLowestGradient(
-	const cv::Mat	LABImage,
+	const cv::Mat   LABImage,
 	const cv::Point centre) 
 {
 	double lowestGradient = FLT_MAX;
@@ -109,10 +109,10 @@ Point SLIC::findLowestGradient(
 			if (y < 1)
 				continue;
 
-			Vec3b tempPixelUp	= LABImage.at<Vec3b>(y - 1, x);
-			Vec3b tempPixelDown	= LABImage.at<Vec3b>(y + 1, x);
-			Vec3b tempPixelRight	= LABImage.at<Vec3b>(y, x + 1);
-			Vec3b tempPixelLeft	= LABImage.at<Vec3b>(y, x - 1);
+			Vec3b tempPixelUp    = LABImage.at<Vec3b>(y - 1, x);
+			Vec3b tempPixelDown  = LABImage.at<Vec3b>(y + 1, x);
+			Vec3b tempPixelRight = LABImage.at<Vec3b>(y, x + 1);
+			Vec3b tempPixelLeft  = LABImage.at<Vec3b>(y, x - 1);
 
 			/* Compute horizontal and vertical gradients and keep track
 			   of the minimum. */
@@ -124,7 +124,7 @@ Point SLIC::findLowestGradient(
 
 			if (tempGradient < lowestGradient)
 			{
-				lowestGradient = tempGradient;
+				lowestGradient        = tempGradient;
 				lowestGradientPoint.x = x;
 				lowestGradientPoint.y = y;
 			}
@@ -134,7 +134,7 @@ Point SLIC::findLowestGradient(
 }
 
 double SLIC::computeDistance(
-	const int		centreIndex,
+	const int       centreIndex,
 	const cv::Point pixelPosition,
 	const cv::Vec3b pixelColor)
 {
@@ -161,10 +161,10 @@ double SLIC::computeDistance(
 }
 
 MatrixOfDouble2D SLIC::createSuperpixels(
-	const cv::Mat		LABImage,
-	const int		samplingStep,
-	const int		spatialDistanceWeight,
-	const MatrixOfDouble2D	previousCentreMatrix)
+	const cv::Mat          LABImage,
+	const int              samplingStep,
+	const int              spatialDistanceWeight,
+	const MatrixOfDouble2D previousCentreMatrix)
 {
 	/* Initialize algorithm data. */
 	initializeSLICData(
@@ -198,7 +198,7 @@ MatrixOfDouble2D SLIC::createSuperpixels(
 						if (tempDistance < distanceFromClusterCentre[y * LABImage.cols + x])
 						{
 							distanceFromClusterCentre[y * LABImage.cols + x] = tempDistance;
-							pixelCluster[y * LABImage.cols + x] = centreIndex;
+							pixelCluster[y * LABImage.cols + x]              = centreIndex;
 						}
 					}
 				}
@@ -217,7 +217,7 @@ MatrixOfDouble2D SLIC::createSuperpixels(
 			pixelsOfSameCluster[n] = 0;
 		}
 
-		/* Compute the new cluster centers. */
+		/* Compute the new cluster centres. */
 		for (int y = 0; y < LABImage.rows; y++) 
 			for (int x = 0; x < LABImage.cols; x++) 
 			{
