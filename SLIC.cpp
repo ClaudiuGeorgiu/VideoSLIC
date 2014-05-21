@@ -23,8 +23,8 @@ SLIC::~SLIC()
 void SLIC::clearSLICData()
 {
 	/* Reset variables. */
-	this->pixelsNumber			= 0;
-	this->samplingStep			= 0;
+	this->pixelsNumber	    = 0;
+	this->samplingStep	    = 0;
 	this->spatialDistanceWeight = 0;
 
 	/* Erase all matrices' elements. */
@@ -35,17 +35,17 @@ void SLIC::clearSLICData()
 }
 
 void SLIC::initializeSLICData(
-	const cv::Mat			LABImage,
-	const int				samplingStep,
-	const int				spatialDistanceWeight,
+	const cv::Mat		LABImage,
+	const int		samplingStep,
+	const int		spatialDistanceWeight,
 	const MatrixOfDouble2D	previousCentreMatrix)
 {
 	/* Clear previous data before initialization. */
 	clearSLICData();
 
 	/* Initialize variables. */
-	this->pixelsNumber			= LABImage.rows * LABImage.cols;
-	this->samplingStep			= samplingStep;
+	this->pixelsNumber	    = LABImage.rows * LABImage.cols;
+	this->samplingStep	    = samplingStep;
 	this->spatialDistanceWeight = spatialDistanceWeight;
 
 	/* Initialize the clusters and the distances matrices. */
@@ -109,16 +109,18 @@ Point SLIC::findLowestGradient(
 			if (y < 1)
 				continue;
 
-			Vec3b tempPixelUp		= LABImage.at<Vec3b>(y - 1, x);
-			Vec3b tempPixelDown		= LABImage.at<Vec3b>(y + 1, x);
+			Vec3b tempPixelUp	= LABImage.at<Vec3b>(y - 1, x);
+			Vec3b tempPixelDown	= LABImage.at<Vec3b>(y + 1, x);
 			Vec3b tempPixelRight	= LABImage.at<Vec3b>(y, x + 1);
-			Vec3b tempPixelLeft		= LABImage.at<Vec3b>(y, x - 1);
+			Vec3b tempPixelLeft	= LABImage.at<Vec3b>(y, x - 1);
 
 			/* Compute horizontal and vertical gradients and keep track
 			   of the minimum. */
 			double tempGradient =
-				(tempPixelRight.val[0] - tempPixelLeft.val[0]) * (tempPixelRight.val[0] - tempPixelLeft.val[0]) +
-				(tempPixelUp.val[0]	   - tempPixelDown.val[0]) * (tempPixelUp.val[0]    - tempPixelDown.val[0]);
+				(tempPixelRight.val[0] - tempPixelLeft.val[0]) *
+				(tempPixelRight.val[0] - tempPixelLeft.val[0]) +
+				(tempPixelUp.val[0]    - tempPixelDown.val[0]) * 
+				(tempPixelUp.val[0]    - tempPixelDown.val[0]);
 
 			if (tempGradient < lowestGradient)
 			{
@@ -159,9 +161,9 @@ double SLIC::computeDistance(
 }
 
 MatrixOfDouble2D SLIC::createSuperpixels(
-	const cv::Mat			LABImage,
-	const int				samplingStep,
-	const int				spatialDistanceWeight,
+	const cv::Mat		LABImage,
+	const int		samplingStep,
+	const int		spatialDistanceWeight,
 	const MatrixOfDouble2D	previousCentreMatrix)
 {
 	/* Initialize algorithm data. */
@@ -372,8 +374,8 @@ void SLIC::colorSuperpixels(Mat LABImage)
 }
 
 void SLIC::drawClusterContours(
-	cv::Mat				LABImage,
-	const cv::Vec3b		contourColor) 
+	cv::Mat		LABImage,
+	const cv::Vec3b	contourColor) 
 {
 	/* Create a matrix which will store contour pixels. */
 	vector<Point> contourPixels;
@@ -428,8 +430,8 @@ void SLIC::drawClusterContours(
 }
 
 void SLIC::drawClusterCentres(
-	cv::Mat				LABImage,
-	const cv::Scalar	centreColor)
+	cv::Mat		 LABImage,
+	const cv::Scalar centreColor)
 {
 	for (int i = 0; i < clusterCentres.size(); i++)
 		circle(LABImage, Point((int)clusterCentres[i][3], (int)clusterCentres[i][4]), 3, centreColor, 2);
