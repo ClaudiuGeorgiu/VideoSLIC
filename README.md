@@ -1,3 +1,3 @@
 #OpenCV SLIC on video sequences
 - Algorithm: http://ivrg.epfl.ch/research/superpixels  
-- Original OpevCV implementation: http://github.com/PSMM/SLIC-Superpixels
+- Original OpenCV implementation: http://github.com/PSMM/SLIC-Superpixels
