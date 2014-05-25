@@ -3,7 +3,9 @@
 
 #include "SLIC.h"
 
-#define MatrixOfDouble2D std::vector<std::vector<double>>
+#include <chrono>
+#include <iostream>
+#include <fstream>
 
 using namespace std;
 using namespace cv;
@@ -11,7 +13,7 @@ using namespace cv;
 int main()
 {
 	/* Video source location. */
-	const string videoLocation = "C:\\Insert_video_path_here.avi";
+	const string videoLocation = "C:\\Users\\Claudiu\\Desktop\\Video Data Set\\EDSH1.avi";
 
 	/* Output window name. */
 	const string windowName = "Captured video";
@@ -39,22 +41,25 @@ int main()
 
 	/* SLIC algorithm parameters. */
 	int spatialDistanceWeight = 60;
-	int superpixelNumber      = 600;
+	int superpixelNumber      = 1000;
 
 	/* Round the sampling step to the nearest integer. */
 	int stepSLIC = (int)(sqrt((videoHeight * videoWidth) / superpixelNumber) + 0.5);
 
 	SLIC SLICVideoElaboration;
 
+	/* Video frames counter. */
+	int framesNumber = 0;
+
 	/* Open a new window where to play the imported video. */
 	namedWindow(windowName, CV_WINDOW_AUTOSIZE);
-
-	/* A container which will hold cluster centres from a frame. */
-	MatrixOfDouble2D previousCentres(0);
 
 	/* Enter an infinite cycle to elaborate the video until its last frame. */
 	while (true)
 	{
+		chrono::high_resolution_clock::time_point startPoint =
+			chrono::high_resolution_clock::now();
+
 		/* Take the next frame from the video. */
 		capturedVideo >> currentFrame;
 
@@ -68,19 +73,27 @@ int main()
 		cvtColor(currentFrame, currentFrame, CV_BGR2Lab);
 
 		/* Perform the SLIC algorithm operations. */
-		previousCentres = SLICVideoElaboration.createSuperpixels(
-			currentFrame, stepSLIC, spatialDistanceWeight, previousCentres);
+		SLICVideoElaboration.createSuperpixels(
+			currentFrame, stepSLIC, spatialDistanceWeight, !framesNumber);
 		//SLICVideoElaboration.enforceConnectivity(currentFrame);
 
 		/* Convert frame back to RGB. */
 		cvtColor(currentFrame, currentFrame, CV_Lab2BGR);
 
-		SLICVideoElaboration.colorSuperpixels(currentFrame);
+		//SLICVideoElaboration.colorSuperpixels(currentFrame);
 		SLICVideoElaboration.drawClusterContours(currentFrame, Vec3b(0, 0, 255));
 		//SLICVideoElaboration.drawClusterCentres(currentFrame, CV_RGB(255, 0, 0));
 
 		/* Show frame in the window. */
 		imshow(windowName, currentFrame);
+
+		chrono::high_resolution_clock::time_point endPoint =
+			chrono::high_resolution_clock::now();
+
+		chrono::duration<int, std::milli> elapsedTime =
+			chrono::duration_cast<chrono::milliseconds>(endPoint - startPoint);
+
+		cout << "F. " << ++framesNumber << ": " << elapsedTime.count() << " millisecondi." << endl;
 
 		/* End program on ESC press. */
 		if (cvWaitKey(1) == 27)

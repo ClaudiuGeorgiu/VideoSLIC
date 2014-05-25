@@ -1,7 +1,7 @@
 /****************************************************************************/
 /*                                                                          */
 /* Algorithm: http://ivrg.epfl.ch/research/superpixels                      */
-/* Original OpevCV implementation: http://github.com/PSMM/SLIC-Superpixels  */
+/* Original OpenCV implementation: http://github.com/PSMM/SLIC-Superpixels  */
 /*                                                                          */
 /****************************************************************************/
 
@@ -33,6 +33,9 @@ class SLIC
 		/* The number of pixels belonging to the same cluster. */
 		std::vector<int> pixelsOfSameCluster;
 
+		/* The error between clusters' centre recalculation. */
+		std::vector<double> residualError;
+
 		/* The total number of pixel of the image. */
 		int pixelsNumber;
 
@@ -47,10 +50,10 @@ class SLIC
 
 		/* Initialize matrices' elements and variables. */
 		void initializeSLICData(
-			const cv::Mat          LABImage,
-			const int              samplingStep,
-			const int              spatialDistanceWeight,
-			const MatrixOfDouble2D previousCentreMatrix);
+			const cv::Mat LABImage,
+			const int     samplingStep,
+			const int     spatialDistanceWeight,
+			const bool    firstVideoFrame = true);
 
 		/* Find the pixel with the lowest gradient in a 3x3 surrounding. */
 		cv::Point findLowestGradient(
@@ -69,17 +72,17 @@ class SLIC
 		SLIC();
 
 		/* Class copy constructor. */
-		SLIC(SLIC& otherSLIC);
+		SLIC(const SLIC& otherSLIC);
 
 		/* Class destructor. */
 		virtual ~SLIC();
 
 		/* Generate superpixels for an image. */
-		MatrixOfDouble2D createSuperpixels(
-			const cv::Mat          LABImage,
-			const int              samplingStep,
-			const int              spatialDistanceWeight,
-			const MatrixOfDouble2D previousCentreMatrix);
+		void createSuperpixels(
+			const cv::Mat LABImage,
+			const int     samplingStep,
+			const int     spatialDistanceWeight,
+			const bool    firstVideoFrame = true);
 
 		/* Enforce connectivity among the superpixels of an image. */
 		void enforceConnectivity(cv::Mat LABImage);

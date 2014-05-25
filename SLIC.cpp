@@ -1,6 +1,7 @@
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include <vector>
+
 #include "SLIC.h"
 
 using namespace cv;
@@ -10,7 +11,7 @@ SLIC::SLIC()
 
 }
 
-SLIC::SLIC(SLIC& otherSLIC)
+SLIC::SLIC(const SLIC& otherSLIC)
 {
 
 }
@@ -32,33 +33,36 @@ void SLIC::clearSLICData()
 	distanceFromClusterCentre.clear();
 	clusterCentres.clear();
 	pixelsOfSameCluster.clear();
+	residualError.clear();
 }
 
 void SLIC::initializeSLICData(
-	const cv::Mat           LABImage,
-	const int               samplingStep,
-	const int               spatialDistanceWeight,
-	const MatrixOfDouble2D	previousCentreMatrix)
+	const cv::Mat LABImage,
+	const int     samplingStep,
+	const int     spatialDistanceWeight,
+	const bool    firstVideoFrame)
 {
-	/* Clear previous data before initialization. */
-	clearSLICData();
-
-	/* Initialize variables. */
-	this->pixelsNumber          = LABImage.rows * LABImage.cols;
-	this->samplingStep          = samplingStep;
-	this->spatialDistanceWeight = spatialDistanceWeight;
-
-	/* Initialize the clusters and the distances matrices. */
-	for (int n = 0; n < pixelsNumber; n++)
-	{
-		pixelCluster.push_back(-1);
-		distanceFromClusterCentre.push_back(FLT_MAX);
-	}
-
 	/* If centres matrix from previous frame is empty,
-	   initialize data from scratch. */
-	if (previousCentreMatrix.size() <= 0)
+	   or this is the first frame in the video,
+	   initialize data from scratch. Otherwise, use
+	   the data from previous frame as initialization.*/
+	if (firstVideoFrame == true || clusterCentres.size() <= 0)
 	{
+		/* Clear previous data before initialization. */
+		clearSLICData();
+
+		/* Initialize variables. */
+		this->pixelsNumber          = LABImage.rows * LABImage.cols;
+		this->samplingStep          = samplingStep;
+		this->spatialDistanceWeight = spatialDistanceWeight;
+
+		/* Initialize the clusters and the distances matrices. */
+		for (int n = 0; n < pixelsNumber; n++)
+		{
+			pixelCluster.push_back(-1);
+			distanceFromClusterCentre.push_back(FLT_MAX);
+		}
+
 		/* Initialize the centres matrix by sampling the image
 		   at a regular step. */
 		for (int y = samplingStep; y < LABImage.rows; y += samplingStep)
@@ -80,17 +84,22 @@ void SLIC::initializeSLICData(
 
 				/* Insert centre in centres matrix. */
 				clusterCentres.push_back(tempCentre);
-			}
-	}
-	else 
-		/* Initialize clusters' centres using centres from
-		   previous frame. */
-		clusterCentres = previousCentreMatrix;
+				
+				/* Initialize "pixel of same cluster" matrix
+				   (with 1 because of the new centre per cluster). */
+				pixelsOfSameCluster.push_back(1);
 
-	/* Initialize "pixel of same cluster" matrix
-	   (with 1 because of the new centre per cluster). */
-	for (int n = 0; n < clusterCentres.size(); n++)
-		pixelsOfSameCluster.push_back(1);
+				/* Initialize residual error to be zero for each cluster
+				   centre. */
+				for (int n = 0; n < clusterCentres.size(); n++)
+					residualError.push_back(0);
+			}	
+	}
+
+	/* Initialize residual error to be zero every
+	   time a new frame is initialized. */
+		for (int n = 0; n < clusterCentres.size(); n++)
+			residualError[n] = 0;
 }
 
 Point SLIC::findLowestGradient(
@@ -160,15 +169,15 @@ double SLIC::computeDistance(
 		spatialDistanceWeight / (samplingStep * samplingStep);
 }
 
-MatrixOfDouble2D SLIC::createSuperpixels(
-	const cv::Mat          LABImage,
-	const int              samplingStep,
-	const int              spatialDistanceWeight,
-	const MatrixOfDouble2D previousCentreMatrix)
+void SLIC::createSuperpixels(
+	const cv::Mat LABImage,
+	const int     samplingStep,
+	const int     spatialDistanceWeight,
+	const bool    firstVideoFrame)
 {
 	/* Initialize algorithm data. */
 	initializeSLICData(
-		LABImage, samplingStep, spatialDistanceWeight, previousCentreMatrix);
+		LABImage, samplingStep, spatialDistanceWeight, firstVideoFrame);
 
 	/* Repeat next steps the number of times prescribed by the algorithm. */
 	for (int iterationIndex = 0; iterationIndex < ITERATIONS_NUMBER; iterationIndex++)
@@ -180,10 +189,10 @@ MatrixOfDouble2D SLIC::createSuperpixels(
 		for (int centreIndex = 0; centreIndex < clusterCentres.size(); centreIndex++) 
 		{
 			/* Look for pixels in a 2 x step by 2 x step region only. */
-			for (int y = (int)clusterCentres[centreIndex][4] - samplingStep;
-				y < clusterCentres[centreIndex][4] + samplingStep; y++) 
-				for (int x = (int)clusterCentres[centreIndex][3] - samplingStep;
-					x < clusterCentres[centreIndex][3] + samplingStep; x++)
+			for (int y = (int)clusterCentres[centreIndex][4] - samplingStep - 1;
+				y < clusterCentres[centreIndex][4] + samplingStep + 1; y++) 
+				for (int x = (int)clusterCentres[centreIndex][3] - samplingStep - 1;
+					x < clusterCentres[centreIndex][3] + samplingStep + 1; x++)
 				{
 					/* Verify that neighbor pixel is within the image boundaries. */
 					if (x >= 0 && x < LABImage.cols && y >= 0 && y < LABImage.rows)
@@ -254,10 +263,6 @@ MatrixOfDouble2D SLIC::createSuperpixels(
 			clusterCentres[centreIndex][4] /= pixelsOfSameCluster[centreIndex];
 		}
 	}
-
-	/* Return the clusters' centres matrix to be used 
-	   for next frames. */
-	return clusterCentres;
 }
 
 void SLIC::enforceConnectivity(Mat LABImage)
@@ -427,6 +432,13 @@ void SLIC::drawClusterContours(
 	/* Draw the contour pixels. */
 	for (int n = 0; n < contourPixels.size(); n++)
 		LABImage.at<Vec3b>(contourPixels[n].y, contourPixels[n].x) = contourColor;
+
+// 	/* Mostra pixel orfani. */
+// 	for (int y = 0; y < LABImage.rows; y++) 
+// 		for (int x = 0; x < LABImage.cols; x++) 
+// 			if (pixelCluster[y * LABImage.cols + x] == -1)
+// 				//circle(LABImage, Point(x, y), 3, Scalar(0, 255, 0), 2);
+// 				std::cout << "Trovato pixel orfano: x = " << x << "y = " << y << "\n";
 }
 
 void SLIC::drawClusterCentres(
