@@ -42,6 +42,9 @@ void SLIC::initializeSLICData(
 	const int     spatialDistanceWeight,
 	const bool    firstVideoFrame)
 {
+		/* Initialize total residual error for each frame. */
+	totalResidualError = FLT_MAX;
+
 	/* If centres matrix from previous frame is empty,
 	   or this is the first frame in the video,
 	   initialize data from scratch. Otherwise, use
@@ -55,6 +58,8 @@ void SLIC::initializeSLICData(
 		this->pixelsNumber          = LABImage.rows * LABImage.cols;
 		this->samplingStep          = samplingStep;
 		this->spatialDistanceWeight = spatialDistanceWeight;
+		this->totalResidualError    = FLT_MAX;
+		this->errorThreshold        = 0.5;
 
 		/* Initialize the clusters and the distances matrices. */
 		for (int n = 0; n < pixelsNumber; n++)
@@ -84,6 +89,7 @@ void SLIC::initializeSLICData(
 
 				/* Insert centre in centres matrix. */
 				clusterCentres.push_back(tempCentre);
+				previousClusterCentres.push_back(tempCentre);
 				
 				/* Initialize "pixel of same cluster" matrix
 				   (with 1 because of the new centre per cluster). */
@@ -91,15 +97,9 @@ void SLIC::initializeSLICData(
 
 				/* Initialize residual error to be zero for each cluster
 				   centre. */
-				for (int n = 0; n < clusterCentres.size(); n++)
-					residualError.push_back(0);
+				residualError.push_back(0);
 			}	
 	}
-
-	/* Initialize residual error to be zero every
-	   time a new frame is initialized. */
-		for (int n = 0; n < clusterCentres.size(); n++)
-			residualError[n] = 0;
 }
 
 Point SLIC::findLowestGradient(
@@ -180,7 +180,7 @@ void SLIC::createSuperpixels(
 		LABImage, samplingStep, spatialDistanceWeight, firstVideoFrame);
 
 	/* Repeat next steps the number of times prescribed by the algorithm. */
-	for (int iterationIndex = 0; iterationIndex < ITERATIONS_NUMBER; iterationIndex++)
+	for (int iterationIndex = 0; totalResidualError > errorThreshold; iterationIndex++)
 	{
 		/* Reset distance values. */
 		for (int n = 0; n < pixelsNumber; n++)
@@ -261,6 +261,39 @@ void SLIC::createSuperpixels(
 			clusterCentres[centreIndex][2] /= pixelsOfSameCluster[centreIndex];
 			clusterCentres[centreIndex][3] /= pixelsOfSameCluster[centreIndex];
 			clusterCentres[centreIndex][4] /= pixelsOfSameCluster[centreIndex];
+		}
+		
+		/* Skip error calculation if this is the first iteration,
+		   meaning this is a new frame in the video. */
+		if (iterationIndex == 0)
+			for (int centreIndex = 0; centreIndex < previousClusterCentres.size(); centreIndex++)
+			{
+				/* Update previous centres matrix. */
+				previousClusterCentres[centreIndex] = clusterCentres[centreIndex];
+			}
+		else
+		{
+			/* Compute residual error. */
+			for (int centreIndex = 0; centreIndex < clusterCentres.size(); centreIndex++)
+			{
+				/* Calculate residual error for each cluster centre. */
+				residualError[centreIndex] = sqrt(
+					(clusterCentres[centreIndex][4] - previousClusterCentres[centreIndex][4]) *
+					(clusterCentres[centreIndex][4] - previousClusterCentres[centreIndex][4]) +
+					(clusterCentres[centreIndex][3] - previousClusterCentres[centreIndex][3]) *
+					(clusterCentres[centreIndex][3] - previousClusterCentres[centreIndex][3]));
+
+				/* Update previous centres matrix. */
+				previousClusterCentres[centreIndex] = clusterCentres[centreIndex];
+			}
+
+			/* Compute total residual error by averaging all clusters' errors. */
+			totalResidualError = 0;
+
+			for (int centreIndex = 0; centreIndex < residualError.size(); centreIndex++)
+				totalResidualError += residualError[centreIndex];
+
+			totalResidualError /= residualError.size();
 		}
 	}
 }
@@ -438,7 +471,7 @@ void SLIC::drawClusterContours(
 // 		for (int x = 0; x < LABImage.cols; x++) 
 // 			if (pixelCluster[y * LABImage.cols + x] == -1)
 // 				//circle(LABImage, Point(x, y), 3, Scalar(0, 255, 0), 2);
-// 				std::cout << "Trovato pixel orfano: x = " << x << "y = " << y << "\n";
+// 				std::cout << "Trovato pixel orfano: x = " << x << "   y = " << y << "\n";
 }
 
 void SLIC::drawClusterCentres(

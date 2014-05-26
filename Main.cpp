@@ -80,7 +80,7 @@ int main()
 		/* Convert frame back to RGB. */
 		cvtColor(currentFrame, currentFrame, CV_Lab2BGR);
 
-		//SLICVideoElaboration.colorSuperpixels(currentFrame);
+		SLICVideoElaboration.colorSuperpixels(currentFrame);
 		SLICVideoElaboration.drawClusterContours(currentFrame, Vec3b(0, 0, 255));
 		//SLICVideoElaboration.drawClusterCentres(currentFrame, CV_RGB(255, 0, 0));
 

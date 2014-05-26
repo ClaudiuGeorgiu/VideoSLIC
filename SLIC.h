@@ -14,9 +14,6 @@
 
 #define MatrixOfDouble2D std::vector<std::vector<double>>
 
-/* Algorithm's number of iterations. */
-#define ITERATIONS_NUMBER 10
-
 class SLIC
 {
 	private:
@@ -29,6 +26,11 @@ class SLIC
 
 		/* The LAB and position values of the centres. */
 		MatrixOfDouble2D clusterCentres;
+
+		/* The LAB and position values of the centres
+		   before centre recalculation (used for calculating
+		   the residual error). */
+		MatrixOfDouble2D previousClusterCentres;
 
 		/* The number of pixels belonging to the same cluster. */
 		std::vector<int> pixelsOfSameCluster;
@@ -44,6 +46,13 @@ class SLIC
 
 		/* The distance weight factor. */
 		int spatialDistanceWeight;
+
+		/* The residual error after clusters' centres
+		   recalculation. */
+		double totalResidualError;
+
+		/* The maximum residual error allowed. */
+		double errorThreshold;
 
 		/* Erase all matrices' elements and reset variables. */
 		void clearSLICData();
