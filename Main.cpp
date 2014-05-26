@@ -3,7 +3,7 @@
 
 #include "SLIC.h"
 
-// #include <chrono>
+#include <chrono>
 // #include <iostream>
 // #include <fstream>
 
