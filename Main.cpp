@@ -3,9 +3,9 @@
 
 #include "SLIC.h"
 
-#include <chrono>
-#include <iostream>
-#include <fstream>
+// #include <chrono>
+// #include <iostream>
+// #include <fstream>
 
 using namespace std;
 using namespace cv;
@@ -41,7 +41,7 @@ int main()
 
 	/* SLIC algorithm parameters. */
 	int spatialDistanceWeight = 60;
-	int superpixelNumber      = 10000;
+	int superpixelNumber      = 1000;
 
 	/* Round the sampling step to the nearest integer. */
 	int stepSLIC = static_cast<int>(sqrt((videoHeight * videoWidth) / superpixelNumber) + 0.5);
