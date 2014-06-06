@@ -4,8 +4,8 @@
 #include "SLIC.h"
 
 #include <chrono>
-// #include <iostream>
-// #include <fstream>
+#include <iostream>
+#include <fstream>
 
 using namespace std;
 using namespace cv;
