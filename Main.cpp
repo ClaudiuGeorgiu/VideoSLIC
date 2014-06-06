@@ -54,8 +54,6 @@ int main()
 	/* Open a new window where to play the imported video. */
 	namedWindow(windowName, CV_WINDOW_AUTOSIZE);
 
-	int totalTimeCount = 0;
-
 	/* Enter an infinite cycle to elaborate the video until its last frame. */
 	while (true)
 	{
@@ -86,8 +84,9 @@ int main()
 		SLICVideoElaboration.drawClusterContours(currentFrame, Vec3b(0, 0, 255));
 		//SLICVideoElaboration.drawClusterCentres(currentFrame, CV_RGB(255, 0, 0));
 
-		/* Show frame in the window. */
+		/* Show frame in the window and increase frame counter. */
 		imshow(windowName, currentFrame);
+		framesNumber++;
 
 		chrono::high_resolution_clock::time_point endPoint =
 			chrono::high_resolution_clock::now();
@@ -95,9 +94,7 @@ int main()
 		chrono::duration<int, std::milli> elapsedTime =
 			chrono::duration_cast<chrono::milliseconds>(endPoint - startPoint);
 
-		// conta il tempo medio di ogni cento frames
-		if (framesNumber % 100 == 0) framesNumber = 0, totalTimeCount = 0, cout << "\nReset\n\n";
-		cout << "T medio" << ": " << ((totalTimeCount += elapsedTime.count()) / ++framesNumber ) << " millisecondi." << endl;
+		cout << "for frame n. " << framesNumber << " (" << elapsedTime.count() << " milliseconds)." << endl;
 
 		/* End program on ESC press. */
 		if (cvWaitKey(1) == 27)

@@ -93,7 +93,7 @@ void SLIC::initializeSLICData(
 		this->samplingStep          = samplingStep;
 		this->spatialDistanceWeight = spatialDistanceWeight;
 		this->totalResidualError    = FLT_MAX;
-		this->errorThreshold        = 0.5;
+		this->errorThreshold        = 0.25;
 
 		/* Initialize the clusters and the distances matrices. */
 		for (int n = 0; n < pixelsNumber; n++)
@@ -333,6 +333,8 @@ void SLIC::createSuperpixels(
 
 			totalResidualError /= residualError.size();
 		}
+		if (totalResidualError <= errorThreshold)
+			std::cout << "Acceptable error after " << iterationIndex + 1 << " iterations ";
 	}
 }
 
