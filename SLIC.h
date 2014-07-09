@@ -16,7 +16,19 @@
 
 class SLIC
 {
-	private:
+	protected:
+
+		/* Debug data. */
+		int framesNumber;
+		double averageError;
+		double averageIterations;
+		double minError;
+		int minIterations;
+		double maxError;
+		int maxIterations;
+		int averageExecutionTime;
+		int minExecutionTime;
+		int maxExecutionTime;
 
 		/* The cluster which each pixel belongs to. */
 		std::vector<int> pixelCluster;
@@ -34,6 +46,9 @@ class SLIC
 
 		/* The number of pixels belonging to the same cluster. */
 		std::vector<int> pixelsOfSameCluster;
+
+		/* The number of iterations performed by the algorithm. */
+		int iterationIndex;
 
 		/* The error between clusters' centre recalculation. */
 		std::vector<double> residualError;
@@ -96,18 +111,31 @@ class SLIC
 		/* Enforce connectivity among the superpixels of an image. */
 		void enforceConnectivity(cv::Mat LABImage);
 
-		/* Color each created superpixel with superpixel's average color. */
-		void colorSuperpixels(cv::Mat LABImage);
+		/* Color each created superpixel in a certain area (by default the
+		   entire image) with superpixel's average color. */
+		void colorSuperpixels(
+			cv::Mat  LABImage,
+			cv::Rect areaToColor = cv::Rect(0, 0, INT_MAX, INT_MAX));
 
-		/* Draw contours around created superpixels. */
+		/* Draw contours around created superpixels in a certain area
+		   (by default the entire image). */
 		void drawClusterContours(
 			cv::Mat         LABImage,
-			const cv::Vec3b contourColor);
+			const cv::Vec3b contourColor,
+			cv::Rect        areaToDraw = cv::Rect(0, 0, INT_MAX, INT_MAX));
 
 		/* Draw superpixels' centres. */
 		void drawClusterCentres(
 			cv::Mat          LABImage,
 			const cv::Scalar centreColor);
+
+		/* Draw superpixels' informations. */
+		void drawInformation(
+			cv::Mat LABImage,
+			int     totalFrames,
+			int     executionTimeInMilliseconds);
+
+		void recognizerHands(cv::Mat& YCrCbImage);
 };
 
 #endif

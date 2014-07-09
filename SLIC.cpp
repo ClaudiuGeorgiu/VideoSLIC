@@ -1,3 +1,5 @@
+#include "SLIC.h"
+
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include <vector>
@@ -5,8 +7,6 @@
 /* Intel Threading Building Blocks libraries
    for multi-threading. */
 #include <tbb/tbb.h>
-
-#include "SLIC.h"
 
 using namespace cv;
 
@@ -18,6 +18,7 @@ SLIC::SLIC()
 SLIC::SLIC(const SLIC& otherSLIC)
 {
 	/* Copy variables. */
+	this->iterationIndex        = otherSLIC.iterationIndex;
 	this->pixelsNumber          = otherSLIC.pixelsNumber;
 	this->samplingStep          = otherSLIC.samplingStep;
 	this->spatialDistanceWeight = otherSLIC.spatialDistanceWeight;
@@ -54,7 +55,20 @@ SLIC::~SLIC()
 
 void SLIC::clearSLICData()
 {
+	/* Reset debug data. */
+	this->framesNumber         = 0;
+	this->averageError         = 0;
+	this->averageIterations    = 0;
+	this->minError             = 0;
+	this->minIterations        = 0;
+	this->maxError             = 0;
+	this->maxIterations        = 0;
+	this->averageExecutionTime = 0;
+	this->minExecutionTime     = 0;
+	this->maxExecutionTime     = 0;
+
 	/* Reset variables. */
+	this->iterationIndex        = 0;
 	this->pixelsNumber          = 0;
 	this->samplingStep          = 0;
 	this->spatialDistanceWeight = 0;
@@ -87,6 +101,11 @@ void SLIC::initializeSLICData(
 	{
 		/* Clear previous data before initialization. */
 		clearSLICData();
+
+		/* Initialize debug data. */
+		this->minError          = FLT_MAX;
+		this->minIterations     = INT_MAX;
+		this->minExecutionTime  = INT_MAX;
 
 		/* Initialize variables. */
 		this->pixelsNumber          = LABImage.rows * LABImage.cols;
@@ -214,7 +233,7 @@ void SLIC::createSuperpixels(
 		LABImage, samplingStep, spatialDistanceWeight, firstVideoFrame);
 
 	/* Repeat next steps until error is lower than the threshold. */
-	for (int iterationIndex = 0; totalResidualError > errorThreshold; iterationIndex++)
+	for (iterationIndex = 0; totalResidualError > errorThreshold; iterationIndex++)
 	{
 		/* Reset distance values. */
 		tbb::parallel_for(0, pixelsNumber, 1, [&](int n)
@@ -333,12 +352,10 @@ void SLIC::createSuperpixels(
 
 			totalResidualError /= residualError.size();
 		}
-		if (totalResidualError <= errorThreshold)
-			std::cout << "Acceptable error after " << iterationIndex + 1 << " iterations ";
 	}
 }
 
-void SLIC::enforceConnectivity(Mat LABImage)
+void SLIC::enforceConnectivity(cv::Mat LABImage)
 {
 // 	int label = 0, adjlabel = 0;
 // 	const int clustersAverageSize = static_cast<int>(0.5 + pixelsNumber / clusterCentres.size());
@@ -401,8 +418,21 @@ void SLIC::enforceConnectivity(Mat LABImage)
 // 			}
 }
 
-void SLIC::colorSuperpixels(Mat LABImage)
+void SLIC::colorSuperpixels(
+	cv::Mat  LABImage,
+	cv::Rect areaToColor)
 {
+	/* Verify that area to color is within image boundaries,
+	   otherwise reset area to the entire image. */
+	if (areaToColor.x < 0 || areaToColor.x > LABImage.cols)
+		areaToColor.x = 0;
+	if (areaToColor.y < 0 || areaToColor.y > LABImage.rows)
+		areaToColor.y = 0;
+	if (areaToColor.width < 0 || areaToColor.x + areaToColor.width > LABImage.cols)
+		areaToColor.width = LABImage.cols - areaToColor.x;
+	if (areaToColor.height < 0 || areaToColor.y + areaToColor.height > LABImage.rows)
+		areaToColor.height = LABImage.rows - areaToColor.y;
+
 	/* Create a matrix which will store the color of each cluster. */
 	vector<Vec3f> clusterColors(clusterCentres.size());
 
@@ -427,8 +457,8 @@ void SLIC::colorSuperpixels(Mat LABImage)
 			// non posso andare in parallelo. Provando con un altro 
 			// metodo parallelo, si riescono a guadagnare 2-3 ms.
 			clusterColors[tempColorIndex].val[0] += tempColor.val[0];
- 			clusterColors[tempColorIndex].val[1] += tempColor.val[1];
- 			clusterColors[tempColorIndex].val[2] += tempColor.val[2];
+			clusterColors[tempColorIndex].val[1] += tempColor.val[1];
+			clusterColors[tempColorIndex].val[2] += tempColor.val[2];
 		}
 	}
 
@@ -446,9 +476,9 @@ void SLIC::colorSuperpixels(Mat LABImage)
 	});
 
 	/* Fill in each cluster with its average color. */
-	tbb::parallel_for(0, LABImage.rows, 1, [&](int y)
+	tbb::parallel_for(areaToColor.y, areaToColor.y + areaToColor.height, 1, [&](int y)
 	{
-		for (int x = 0; x < LABImage.cols; x++)
+		for (int x = areaToColor.x; x < areaToColor.x + areaToColor.width; x++)
 			if (pixelCluster[y * LABImage.cols + x] >= 0 &&
 				pixelCluster[y * LABImage.cols + x] < clusterColors.size())
 			{
@@ -460,17 +490,29 @@ void SLIC::colorSuperpixels(Mat LABImage)
 
 void SLIC::drawClusterContours(
 	cv::Mat         LABImage,
-	const cv::Vec3b	contourColor) 
+	const cv::Vec3b	contourColor,
+	cv::Rect        areaToDraw) 
 {
+	/* Verify that area to color is within image boundaries,
+	   otherwise reset area to the entire image. */
+	if (areaToDraw.x < 0 || areaToDraw.x > LABImage.cols)
+		areaToDraw.x = 0;
+	if (areaToDraw.y < 0 || areaToDraw.y > LABImage.rows)
+		areaToDraw.y = 0;
+	if (areaToDraw.width < 0 || areaToDraw.x + areaToDraw.width > LABImage.cols)
+		areaToDraw.width = LABImage.cols - areaToDraw.x;
+	if (areaToDraw.height < 0 || areaToDraw.y + areaToDraw.height > LABImage.rows)
+		areaToDraw.height = LABImage.rows - areaToDraw.y;
+
 	/* Create a matrix with bool values detailing whether a
 	   pixel is a contour or not. */
 	vector<bool> isContour(pixelsNumber);
 
 	/* Scan all the pixels and compare them to neighbor
 	   pixels to see if they belong to a different cluster. */
-	tbb::parallel_for(0, LABImage.rows, 1, [&](int y)
+	tbb::parallel_for(areaToDraw.y, areaToDraw.y + areaToDraw.height, 1, [&](int y)
 	{
-		for (int x = 0; x < LABImage.cols; x++)
+		for (int x = areaToDraw.x; x < areaToDraw.x + areaToDraw.width; x++)
 		{
 			/* Continue only if the selected pixel
 			   belongs to a cluster. */
@@ -507,4 +549,153 @@ void SLIC::drawClusterCentres(
 		/* Draw a circle on the image for each cluster centre. */
 		circle(LABImage, Point(static_cast<int>(clusterCentres[n][3]), static_cast<int>(clusterCentres[n][4])), 3, centreColor, 2);
 	});
+}
+
+void SLIC::drawInformation(
+	cv::Mat LABImage,
+	int     totalFrames,
+	int     executionTimeInMilliseconds)
+{
+	framesNumber++;
+
+	std::ostringstream stringStream;
+
+	if (totalResidualError < minError)
+		minError = totalResidualError;
+	if (totalResidualError > maxError)
+		maxError = totalResidualError;
+	if (iterationIndex < minIterations)
+		minIterations = iterationIndex;
+	if (iterationIndex > maxIterations)
+		maxIterations = iterationIndex;
+	if (executionTimeInMilliseconds < minExecutionTime)
+		minExecutionTime = executionTimeInMilliseconds;
+	if (executionTimeInMilliseconds > maxExecutionTime)
+		maxExecutionTime = executionTimeInMilliseconds;
+
+	rectangle(LABImage, Point(0, 0), Point(260, 320), CV_RGB(255, 255, 255), CV_FILLED);
+
+	stringStream << "Frame: " << framesNumber << " (" << totalFrames << " total)";
+	putText(LABImage, stringStream.str(), Point(5, 20), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Superpixels: " << clusterCentres.size();
+	putText(LABImage, stringStream.str(), Point(5, 40), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Distance weight: " << spatialDistanceWeight;
+	putText(LABImage, stringStream.str(), Point(5, 60), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Exe. time now: " << executionTimeInMilliseconds << " ms";
+	putText(LABImage, stringStream.str(), Point(5, 80), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Exe. time max.: " << maxExecutionTime;
+	putText(LABImage, stringStream.str(), Point(5, 100), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Exe. time min.: " << minExecutionTime;
+	putText(LABImage, stringStream.str(), Point(5, 120), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Exe. time avg.: " << (averageExecutionTime += executionTimeInMilliseconds) / framesNumber << " ms";
+	putText(LABImage, stringStream.str(), Point(5, 140), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Iterations now: " << iterationIndex;
+	putText(LABImage, stringStream.str(), Point(5, 160), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Iterations max.: " << maxIterations;
+	putText(LABImage, stringStream.str(), Point(5, 180), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Iterations min.: " << minIterations;
+	putText(LABImage, stringStream.str(), Point(5, 200), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Iterations avg.: " << (averageIterations += iterationIndex) / framesNumber;
+	putText(LABImage, stringStream.str(), Point(5, 220), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Error now: " << totalResidualError;
+	putText(LABImage, stringStream.str(), Point(5, 240), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Error max.: " << maxError;
+	putText(LABImage, stringStream.str(), Point(5, 260), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Error min.: " << minError;
+	putText(LABImage, stringStream.str(), Point(5, 280), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+
+	stringStream.str("");
+	stringStream << "Error avg.: " << (averageError += totalResidualError) / framesNumber;
+	putText(LABImage, stringStream.str(), Point(5, 300), 
+		FONT_HERSHEY_COMPLEX_SMALL, 0.8, CV_RGB(0, 0, 0), 1, CV_AA);
+}
+
+void SLIC::recognizerHands(cv::Mat& YCrCbImage)
+{
+// 	/* Average hand color in YCrCb color space (experimental). */
+// 	const Vec3f averageHandColor(125.3, 150.2, 111.4);
+// 	const int probabilityThreshold = 85;
+// 
+// 	vector<double> clusterProbabilityToBeHand(clusterCentres.size());
+// 	vector<double> nearProbabilityToBeHand(clusterCentres.size());
+// 	
+// 	for (int n = 0; n < clusterCentres.size(); n++)
+// 	{
+// 		double primo = abs(averageHandColor[1] - clusterCentres[n][1]);
+// 		double secondo = abs(averageHandColor[2] - clusterCentres[n][2]);
+// 		clusterProbabilityToBeHand[n] = 100.0 - abs(primo + secondo);
+// 	}
+// 
+// 	for (int n = 0; n < clusterCentres.size(); n++)
+// 	{
+// 		nearProbabilityToBeHand[n] = 0;
+// 		for (int i = 0; i < clusterCentres.size(); i++)
+// 		{
+// 			if (n == i)
+// 				continue;
+// 			if (abs(clusterCentres[i][3] - clusterCentres[n][3]) <= 1.5 * samplingStep &&
+// 				abs(clusterCentres[i][4] - clusterCentres[n][4]) <= 1.5 * samplingStep)
+// 			{
+// 				if (clusterProbabilityToBeHand[i] > probabilityThreshold &&
+// 					clusterProbabilityToBeHand[n] > probabilityThreshold)
+// 					nearProbabilityToBeHand[n]++;
+// 				else nearProbabilityToBeHand[n]--;
+// 			}
+// 		}
+// 	}
+// 
+//  	cvtColor(YCrCbImage, YCrCbImage, CV_YCrCb2BGR);
+//  	cvtColor(YCrCbImage, YCrCbImage, CV_BGR2GRAY);
+//  
+// 	/* Fill in each cluster with its average color. */
+// 	tbb::parallel_for(0, YCrCbImage.rows, 1, [&](int y)
+// 	{
+// 		for (int x = 0; x < YCrCbImage.cols; x++)
+// 		{
+// 			if (clusterProbabilityToBeHand[pixelCluster[y * YCrCbImage.cols + x]] > probabilityThreshold)
+// 				YCrCbImage.at<uchar>(y, x) = 0;
+// 			if (nearProbabilityToBeHand[pixelCluster[y * YCrCbImage.cols + x]] > 0)
+// 				YCrCbImage.at<uchar>(y, x) = 0;
+// 		}
+// 	});
 }
