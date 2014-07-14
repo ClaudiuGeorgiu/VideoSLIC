@@ -8,6 +8,8 @@
    for multi-threading. */
 #include <tbb/tbb.h>
 
+#include "RandomGen.h"
+
 using namespace cv;
 
 SLIC::SLIC()
@@ -152,6 +154,89 @@ void SLIC::initializeSLICData(
 				   centre. */
 				residualError.push_back(0);
 			}	
+	}
+	void SLIC::initializeSLICData(
+	const cv::Mat LABImage,
+	const int     samplingStep,
+	const int     spatialDistanceWeight,
+	const bool    firstVideoFrame)
+{
+	/* Initialize total residual error for each frame. */
+	totalResidualError = FLT_MAX;
+
+	/* If centres matrix from previous frame is empty,
+	   or this is the first frame in the video,
+	   initialize data from scratch. Otherwise, use
+	   the data from previous frame as initialization.*/
+	if (firstVideoFrame == true || clusterCentres.size() <= 0)
+	{
+		/* Clear previous data before initialization. */
+		clearSLICData();
+
+		/* Initialize debug data. */
+		this->minError          = FLT_MAX;
+		this->minIterations     = INT_MAX;
+		this->minExecutionTime  = INT_MAX;
+
+		/* Initialize variables. */
+		this->pixelsNumber          = LABImage.rows * LABImage.cols;
+		this->samplingStep          = samplingStep;
+		this->spatialDistanceWeight = spatialDistanceWeight;
+		this->totalResidualError    = FLT_MAX;
+		this->errorThreshold        = 0.25;
+
+		/* Initialize the clusters and the distances matrices. */
+		for (int n = 0; n < pixelsNumber; n++)
+		{
+			pixelCluster.push_back(-1);
+			distanceFromClusterCentre.push_back(FLT_MAX);
+		}
+
+		/* Initialize the centres matrix by sampling the image
+		   at a regular step. */
+		for (int y = samplingStep; y < LABImage.rows; y += samplingStep)
+			for (int x = samplingStep; x < LABImage.cols; x += samplingStep)
+			{
+				/* Find the pixel with the lowest gradient in a 3x3 surrounding. */
+				Point lowestGradientPixel = findLowestGradient(LABImage, Point(x, y));
+				Vec3b tempPixelColor = LABImage.at<Vec3b>(y, x);
+
+				/* Create a centre [l, a, b, x, y] and insert it in the centres vector. */
+				vector<double> tempCentre;
+
+				/* Generate the centre vector. */
+				tempCentre.push_back(tempPixelColor.val[0]);
+				tempCentre.push_back(tempPixelColor.val[1]);
+				tempCentre.push_back(tempPixelColor.val[2]);
+				tempCentre.push_back(lowestGradientPixel.x);
+				tempCentre.push_back(lowestGradientPixel.y);
+
+				/* Insert centre in centres matrix. */
+				clusterCentres.push_back(tempCentre);
+				previousClusterCentres.push_back(tempCentre);
+				
+				/* Initialize "pixel of same cluster" matrix
+				   (with 1 because of the new centre per cluster). */
+				pixelsOfSameCluster.push_back(1);
+
+				/* Initialize residual error to be zero for each cluster
+				   centre. */
+				residualError.push_back(0);
+			}	
+	}
+	else 
+	{
+
+		/*random generator*/
+		RandNormal randomGen(0.0, double(samplingStep*0.5)); // std dev could be tuned
+
+		/* add some gaussian noise to position */
+		/* colour should be kept equal: we look for a similar colour in the surroundings*/
+		for (int i = 0; i < (int)clusterCentres.size() ; i++)
+		{
+			clusterCentres[i][3] += randomGen();
+			clusterCentres[i][4] += randomGen();
+		}
 	}
 }
 
