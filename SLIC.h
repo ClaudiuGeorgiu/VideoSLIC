@@ -5,8 +5,11 @@
 /*                                                                          */
 /****************************************************************************/
 
+/* OpenCV libraries for video and image
+   elaborations. */
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
+
 #include <vector>
 
 #ifndef SLIC_H
@@ -36,10 +39,10 @@ class SLIC
 		/* The distance of each pixel from the nearest cluster's centre. */
 		std::vector<double> distanceFromClusterCentre;
 
-		/* The LAB and position values of the centres. */
+		/* The color and position values of the centres. */
 		MatrixOfDouble2D clusterCentres;
 
-		/* The LAB and position values of the centres
+		/* The color and position values of the centres
 		   before centre recalculation (used for calculating
 		   the residual error). */
 		MatrixOfDouble2D previousClusterCentres;
@@ -74,14 +77,14 @@ class SLIC
 
 		/* Initialize matrices' elements and variables. */
 		void initializeSLICData(
-			const cv::Mat LABImage,
+			const cv::Mat image,
 			const int     samplingStep,
 			const int     spatialDistanceWeight,
 			const bool    firstVideoFrame = true);
 
 		/* Find the pixel with the lowest gradient in a 3x3 surrounding. */
 		cv::Point findLowestGradient(
-			const cv::Mat   LABImage,
+			const cv::Mat   image,
 			const cv::Point centre);
 
 		/* Compute the distance between a cluster's centre and an individual pixel. */
@@ -103,39 +106,37 @@ class SLIC
 
 		/* Generate superpixels for an image. */
 		void createSuperpixels(
-			const cv::Mat LABImage,
+			const cv::Mat image,
 			const int     samplingStep,
 			const int     spatialDistanceWeight,
 			const bool    firstVideoFrame = true);
 
-		/* Enforce connectivity among the superpixels of an image. */
-		void enforceConnectivity(cv::Mat LABImage);
-
 		/* Color each created superpixel in a certain area (by default the
 		   entire image) with superpixel's average color. */
 		void colorSuperpixels(
-			cv::Mat  LABImage,
+			cv::Mat  image,
 			cv::Rect areaToColor = cv::Rect(0, 0, INT_MAX, INT_MAX));
 
 		/* Draw contours around created superpixels in a certain area
 		   (by default the entire image). */
 		void drawClusterContours(
-			cv::Mat         LABImage,
+			cv::Mat         image,
 			const cv::Vec3b contourColor,
 			cv::Rect        areaToDraw = cv::Rect(0, 0, INT_MAX, INT_MAX));
 
 		/* Draw superpixels' centres. */
 		void drawClusterCentres(
-			cv::Mat          LABImage,
+			cv::Mat          image,
 			const cv::Scalar centreColor);
 
 		/* Draw superpixels' informations. */
 		void drawInformation(
-			cv::Mat LABImage,
+			cv::Mat image,
 			int     totalFrames,
 			int     executionTimeInMilliseconds);
 
-		void recognizerHands(cv::Mat& YCrCbImage);
+		/* Recognize hands in the video. */
+		void recognizeHands(cv::Mat image);
 };
 
 #endif
