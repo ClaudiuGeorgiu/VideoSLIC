@@ -63,6 +63,8 @@ int main()
 
 	SLIC* SLICVideoElaboration = new SLIC();
 
+	double totTime = 0;
+
 	/* Enter an infinite cycle to elaborate the video until its last frame. */
 	while (true)
 	{
@@ -70,12 +72,12 @@ int main()
 			chrono::high_resolution_clock::now();
 
 		/* Re-initialize SLIC each 30 frames. */
-// 		if ((framesNumber != 0) && (framesNumber % 30 == 0))
-// 		{
-// 			if (SLICVideoElaboration != NULL)
-// 				delete SLICVideoElaboration;
-// 			SLICVideoElaboration = new SLIC();
-// 		}
+		if ((framesNumber != 0) && (framesNumber % 30 == 0))
+		{
+			if (SLICVideoElaboration != NULL)
+				delete SLICVideoElaboration;
+			SLICVideoElaboration = new SLIC();
+		}
 
 		/* Take the next frame from the video. */
 		capturedVideo >> currentFrame;
@@ -91,7 +93,7 @@ int main()
 
 		/* Perform the SLIC algorithm operations. */
 		SLICVideoElaboration->createSuperpixels(
-			currentFrame, stepSLIC, spatialDistanceWeight, !framesNumber);
+			currentFrame, stepSLIC, spatialDistanceWeight, false);
 		SLICVideoElaboration->colorSuperpixels(currentFrame);
 
 		/* Convert frame back to RGB. */
@@ -105,11 +107,15 @@ int main()
 		chrono::duration<int, std::milli> elapsedTime =
 			chrono::duration_cast<chrono::milliseconds>(endPoint - startPoint);
 
-		framesNumber++;
+		++framesNumber;
 		SLICVideoElaboration->drawInformation(currentFrame, framesNumber, elapsedTime.count());
+
+		totTime += elapsedTime.count();
 
 		/* Show frame in the window. */
 		imshow(windowName, currentFrame);
+
+		cout << totTime / framesNumber << endl;
 
 		/* End program on ESC press. */
 		if (cvWaitKey(1) == 27)

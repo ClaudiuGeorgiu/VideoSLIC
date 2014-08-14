@@ -15,8 +15,6 @@
 #ifndef SLIC_H
 #define SLIC_H
 
-#define MatrixOfDouble2D std::vector<std::vector<double>>
-
 class SLIC
 {
 	protected:
@@ -40,30 +38,36 @@ class SLIC
 		std::vector<double> distanceFromClusterCentre;
 
 		/* The color and position values of the centres. */
-		MatrixOfDouble2D clusterCentres;
+		std::vector<double> clusterCentres;
 
 		/* The color and position values of the centres
 		   before centre recalculation (used for calculating
 		   the residual error). */
-		MatrixOfDouble2D previousClusterCentres;
+		std::vector<double> previousClusterCentres;
 
 		/* The number of pixels belonging to the same cluster. */
 		std::vector<int> pixelsOfSameCluster;
 
-		/* The number of iterations performed by the algorithm. */
-		int iterationIndex;
-
 		/* The error between clusters' centre recalculation. */
 		std::vector<double> residualError;
 
+		/* The number of iterations performed by the algorithm. */
+		int iterationIndex;
+
 		/* The total number of pixel of the image. */
 		int pixelsNumber;
+
+		/* The total number of cluster. */
+		int clustersNumber;
 
 		/* The sampling step distance. */
 		int samplingStep;
 
 		/* The distance weight factor. */
 		int spatialDistanceWeight;
+
+		/* spatialDistanceWeight^2 / samplingStep^2. */
+		double distanceFactor;
 
 		/* The residual error after clusters' centres
 		   recalculation. */
