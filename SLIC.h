@@ -20,16 +20,16 @@ class SLIC
 	protected:
 
 		/* Debug data. */
-		int framesNumber;
+		unsigned framesNumber;
+		unsigned minIterations;
+		unsigned maxIterations;
+		unsigned averageExecutionTime;
+		unsigned minExecutionTime;
+		unsigned maxExecutionTime;
 		double averageError;
 		double averageIterations;
 		double minError;
-		int minIterations;
 		double maxError;
-		int maxIterations;
-		int averageExecutionTime;
-		int minExecutionTime;
-		int maxExecutionTime;
 
 		/* The cluster which each pixel belongs to. */
 		std::vector<int> pixelCluster;
@@ -52,19 +52,19 @@ class SLIC
 		std::vector<double> residualError;
 
 		/* The number of iterations performed by the algorithm. */
-		int iterationIndex;
+		unsigned iterationIndex;
 
 		/* The total number of pixel of the image. */
-		int pixelsNumber;
+		unsigned pixelsNumber;
 
 		/* The total number of cluster. */
-		int clustersNumber;
+		unsigned clustersNumber;
 
 		/* The sampling step distance. */
-		int samplingStep;
+		unsigned samplingStep;
 
 		/* The distance weight factor. */
-		int spatialDistanceWeight;
+		unsigned spatialDistanceWeight;
 
 		/* spatialDistanceWeight^2 / samplingStep^2. */
 		double distanceFactor;
@@ -81,21 +81,21 @@ class SLIC
 
 		/* Initialize matrices' elements and variables. */
 		void initializeSLICData(
-			const cv::Mat image,
-			const int     samplingStep,
-			const int     spatialDistanceWeight,
-			const bool    firstVideoFrame = true);
+			const cv::Mat& image,
+			const unsigned samplingStep,
+			const unsigned spatialDistanceWeight,
+			const bool     firstVideoFrame = true);
 
 		/* Find the pixel with the lowest gradient in a 3x3 surrounding. */
 		cv::Point findLowestGradient(
-			const cv::Mat   image,
-			const cv::Point centre);
+			const cv::Mat&   image,
+			const cv::Point& centre);
 
 		/* Compute the distance between a cluster's centre and an individual pixel. */
 		double computeDistance(
-			const int       centreIndex,
-			const cv::Point pixelPosition,
-			const cv::Vec3b pixelColor);
+			const int        centreIndex,
+			const cv::Point& pixelPosition,
+			const cv::Vec3b& pixelColor);
 
 	public:
 
@@ -110,37 +110,40 @@ class SLIC
 
 		/* Generate superpixels for an image. */
 		void createSuperpixels(
-			const cv::Mat image,
-			const int     samplingStep,
-			const int     spatialDistanceWeight,
-			const bool    firstVideoFrame = true);
+			const cv::Mat& image,
+			const unsigned samplingStep,
+			const unsigned spatialDistanceWeight,
+			const bool     firstVideoFrame = true);
+
+		/* Enforce superpixel connectivity. */
+		void SLIC::enforceConnectivity(const cv::Mat image);
 
 		/* Color each created superpixel in a certain area (by default the
 		   entire image) with superpixel's average color. */
 		void colorSuperpixels(
-			cv::Mat  image,
-			cv::Rect areaToColor = cv::Rect(0, 0, INT_MAX, INT_MAX));
+			cv::Mat&  image,
+			cv::Rect& areaToColor = cv::Rect(0, 0, INT_MAX, INT_MAX));
 
 		/* Draw contours around created superpixels in a certain area
 		   (by default the entire image). */
 		void drawClusterContours(
-			cv::Mat         image,
-			const cv::Vec3b contourColor,
-			cv::Rect        areaToDraw = cv::Rect(0, 0, INT_MAX, INT_MAX));
+			cv::Mat&         image,
+			const cv::Vec3b& contourColor,
+			cv::Rect&        areaToDraw = cv::Rect(0, 0, INT_MAX, INT_MAX));
 
 		/* Draw superpixels' centres. */
 		void drawClusterCentres(
-			cv::Mat          image,
-			const cv::Scalar centreColor);
+			cv::Mat&          image,
+			const cv::Scalar& centreColor);
 
 		/* Draw superpixels' informations. */
 		void drawInformation(
-			cv::Mat image,
-			int     totalFrames,
-			int     executionTimeInMilliseconds);
+			cv::Mat&       image,
+			const unsigned totalFrames,
+			const unsigned executionTimeInMilliseconds);
 
 		/* Recognize hands in the video. */
-		void recognizeHands(cv::Mat image);
+		void recognizeHands(cv::Mat& image);
 };
 
 #endif
