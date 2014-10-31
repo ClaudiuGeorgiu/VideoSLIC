@@ -102,9 +102,6 @@ void SLIC::initializeSLICData(
 	const unsigned spatialDistanceWeight,
 	const bool     firstVideoFrame)
 {
-	/* Initialize total residual error for each frame. */
-	totalResidualError = FLT_MAX;
-
 	/* If centres matrix from previous frame is empty,
 	   or this is the first frame in the video,
 	   initialize data from scratch. Otherwise, use
@@ -115,24 +112,23 @@ void SLIC::initializeSLICData(
 		clearSLICData();
 
 		/* Initialize debug data. */
-		this->minError          = FLT_MAX;
-		this->minIterations     = INT_MAX;
-		this->minExecutionTime  = INT_MAX;
+		this->minError          = DBL_MAX;
+		this->minIterations     = UINT_MAX;
+		this->minExecutionTime  = UINT_MAX;
 
 		/* Initialize variables. */
 		this->pixelsNumber          = image.rows * image.cols;
 		this->samplingStep          = samplingStep;
 		this->spatialDistanceWeight = spatialDistanceWeight;
 		this->distanceFactor        =
-			spatialDistanceWeight * spatialDistanceWeight / (samplingStep * samplingStep);
-		this->totalResidualError    = FLT_MAX;
+			static_cast<double>(1.0 * spatialDistanceWeight * spatialDistanceWeight / (samplingStep * samplingStep));
 		this->errorThreshold        = 0.25;
 
 		/* Initialize the clusters and the distances matrices. */
 		for (unsigned n = 0; n < pixelsNumber; ++n)
 		{
 			pixelCluster.push_back(-1);
-			distanceFromClusterCentre.push_back(FLT_MAX);
+			distanceFromClusterCentre.push_back(DBL_MAX);
 		}
 
 		/* Initialize the centres matrix by sampling the image
@@ -157,9 +153,8 @@ void SLIC::initializeSLICData(
 				previousClusterCentres.push_back(lowestGradientPixel.x);
 				previousClusterCentres.push_back(lowestGradientPixel.y);
 				
-				/* Initialize "pixel of same cluster" matrix
-				   (with 1 because of the new centre per cluster). */
-				pixelsOfSameCluster.push_back(1);
+				/* Initialize "pixel of same cluster" matrix. */
+				pixelsOfSameCluster.push_back(0);
 
 				/* Initialize residual error to be zero for each cluster
 				   centre. */
@@ -181,13 +176,16 @@ void SLIC::initializeSLICData(
 			clusterCentres[5 * n + 4] += randomGen();
 		}
 	}
+
+	/* Initialize total residual error for each frame. */
+	this->totalResidualError = DBL_MAX;
 }
 
 Point SLIC::findLowestGradient(
 	const cv::Mat&   image,
 	const cv::Point& centre) 
 {
-	double lowestGradient     = FLT_MAX;
+	double lowestGradient     = DBL_MAX;
 	Point lowestGradientPoint = Point(centre.x, centre.y);
 
 	for (int y = centre.y - 1; y <= centre.y + 1 && y < image.rows - 1; ++y) 
@@ -265,7 +263,7 @@ void SLIC::createSuperpixels(
 		/* Reset distance values. */
 		tbb::parallel_for<unsigned>(0, pixelsNumber, 1, [=](unsigned n)
 		{
-			distanceFromClusterCentre[n] = FLT_MAX;
+			distanceFromClusterCentre[n] = DBL_MAX;
 		});
 		
 		tbb::parallel_for<unsigned>(0, clustersNumber, 1, [=](unsigned centreIndex)
