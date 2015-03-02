@@ -54,9 +54,6 @@ int main(int argc, char *argv[])
 	/* Video frames counter. */
 	unsigned framesNumber = 0;
 
-	/* Video frames counter. */
-	int framesNumber = 0;
-
 	/* Open a new window where to play the imported video. */
 	namedWindow(windowName, CV_WINDOW_AUTOSIZE);
 

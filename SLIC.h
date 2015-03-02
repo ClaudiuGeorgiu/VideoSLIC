@@ -45,11 +45,6 @@ class SLIC
 		   the residual error). */
 		std::vector<double> previousClusterCentres;
 
-		/* The LAB and position values of the centres
-		   before centre recalculation (used for calculating
-		   the residual error). */
-		MatrixOfDouble2D previousClusterCentres;
-
 		/* The number of pixels belonging to the same cluster. */
 		std::vector<int> pixelsOfSameCluster;
 
@@ -73,13 +68,6 @@ class SLIC
 
 		/* spatialDistanceWeight^2 / samplingStep^2. */
 		double distanceFactor;
-
-		/* The residual error after clusters' centres
-		   recalculation. */
-		double totalResidualError;
-
-		/* The maximum residual error allowed. */
-		double errorThreshold;
 
 		/* The residual error after clusters' centres
 		   recalculation. */
