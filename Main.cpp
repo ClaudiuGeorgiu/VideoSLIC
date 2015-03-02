@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 
 		/* Convert the frame from RGB to YCrCb color space
 		   before SLIC elaboration. */
-		cvtColor(currentFrame, currentFrame, CV_BGR2YCrCb);
+		cvtColor(currentFrame, currentFrame, CV_BGR2Lab);
 
 		/* Perform the SLIC algorithm operations. */
 		SLICVideoElaboration->createSuperpixels(
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 		//SLICVideoElaboration->colorSuperpixels(currentFrame);
 
 		/* Convert frame back to RGB. */
-		cvtColor(currentFrame, currentFrame, CV_YCrCb2BGR);
+		cvtColor(currentFrame, currentFrame, CV_Lab2BGR);
 
 		SLICVideoElaboration->drawClusterContours(currentFrame, Vec3b(0, 0, 255)/*, Rect(videoWidth / 2, 0, videoWidth / 2, videoHeight)*/);
 

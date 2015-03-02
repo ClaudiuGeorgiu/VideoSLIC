@@ -185,30 +185,23 @@ Point SLIC::findLowestGradient(
 	const cv::Mat&   image,
 	const cv::Point& centre) 
 {
-	double lowestGradient     = DBL_MAX;
+	unsigned lowestGradient   = UINT_MAX;
 	Point lowestGradientPoint = Point(centre.x, centre.y);
 
 	for (int y = centre.y - 1; y <= centre.y + 1 && y < image.rows - 1; ++y) 
 		for (int x = centre.x - 1; x <= centre.x + 1 && x < image.cols - 1; ++x) 
 		{
 			/* Exclude pixels on borders. */
-			if (x < 1)
+			if (x < 1 || y < 1)
 				continue;
-			if (y < 1)
-				continue;
-
-			Vec3b tempPixelUp    = image.at<Vec3b>(y - 1, x);
-			Vec3b tempPixelDown  = image.at<Vec3b>(y + 1, x);
-			Vec3b tempPixelRight = image.at<Vec3b>(y, x + 1);
-			Vec3b tempPixelLeft  = image.at<Vec3b>(y, x - 1);
 
 			/* Compute horizontal and vertical gradients and keep track
 			   of the minimum. */
-			double tempGradient =
-				(tempPixelRight.val[0] - tempPixelLeft.val[0]) *
-				(tempPixelRight.val[0] - tempPixelLeft.val[0]) +
-				(tempPixelUp.val[0]    - tempPixelDown.val[0]) * 
-				(tempPixelUp.val[0]    - tempPixelDown.val[0]);
+			unsigned tempGradient =
+				(image.at<Vec3b>(y, x + 1).val[0] - image.at<Vec3b>(y, x - 1).val[0]) *
+				(image.at<Vec3b>(y, x + 1).val[0] - image.at<Vec3b>(y, x - 1).val[0]) +
+				(image.at<Vec3b>(y - 1, x).val[0] - image.at<Vec3b>(y + 1, x).val[0]) * 
+				(image.at<Vec3b>(y - 1, x).val[0] - image.at<Vec3b>(y + 1, x).val[0]);
 
 			if (tempGradient < lowestGradient)
 			{
