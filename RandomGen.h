@@ -9,7 +9,8 @@
 /* Author:         Pietro Morerio                                           */
 /*                                                                          */
 /* Purpose:        generation of random numbers                             */
-/*                 (with specific distribution)                             */
+/*                 with Gaussian distribution                               */
+/*                                                                          */
 /****************************************************************************/
 
 #ifndef RANDOMGEN_H
@@ -42,25 +43,13 @@ class RandNormal
 
 		RandNormal(double mean, double stddev);
 
-		double GetMean()
-		{
-			return m_dMean;
-		}
+		double GetMean();
 
-		double GetStdDev()
-		{
-			return m_dStdDev;
-		}
+		double GetStdDev();
 
-		double GetVariance()
-		{
-			return m_dStdDev * m_dStdDev;
-		}
+		double GetVariance();
 
-		double operator()()
-		{
-			return m_normal_gen();
-		}
+		double operator()();
 };
 
 #endif

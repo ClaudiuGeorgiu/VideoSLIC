@@ -1,3 +1,13 @@
+/****************************************************************************/
+/*                                                                          */
+/* Original algorithm: http://ivrg.epfl.ch/research/superpixels             */
+/* Original OpenCV implementation: http://github.com/PSMM/SLIC-Superpixels  */
+/*                                                                          */
+/* Paper: "Optimizing Superpixel Clustering for Real-Time                   *//*         Egocentric-Vision Applications"                                  */
+/*        http://www.isip40.it/resources/papers/2015/SPL_Pietro.pdf         */
+/*                                                                          */
+/****************************************************************************/
+
 #include "SLIC.h"
 
 /* OpenCV libraries for video and image
@@ -15,13 +25,27 @@
 using namespace std;
 using namespace cv;
 
+/* Function performing SLIC algorithm on a video sequence. */
+int VideoSLIC(
+	VideoCapture&        capturedVideo,
+	unsigned             superpixelNumber,
+	unsigned             spatialDistanceWeight,
+	bool                 connectedFrames,
+	SLICElaborationMode  SLICMode,
+	unsigned             iterationNumber,
+	double               errorThreshold,
+	VideoElaborationMode videoMode,
+	unsigned             keyFramesRatio,
+	double               GaussianStdDev
+	);
+
 int main(int argc, char *argv[])
 {
 	/* Video source location. */
 	const string videoLocation = (argc == 2) ? argv[1] : "C:\\Users\\Claudiu\\Desktop\\Video Data Set\\EDSH1.avi";
 
 	/* Output window name. */
-	const string windowName = "Captured video";
+	const string windowName = "VideoSLIC";
 
 	/* Declare a container for the video and try to import the video from
 	   a specific location. */
@@ -36,28 +60,78 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	/* SLIC algorithm parameters. */
+	unsigned spatialDistanceWeight = 30;
+	unsigned superpixelNumber      = 1000;
+	/* There's no need to set both iterationNumber and errorThreshold,
+	   it's enough to set only one of them and set the other one to zero.
+	   Which of the two values will be used for video elaboration depends
+	   on the value of the field SLICMode. */
+	unsigned iterationNumber       = 10;
+	double   errorThreshold        = 0.25;
+
+	/* Compute SLIC algorithm step for later use in generating Gaussian noise. */
+	const unsigned videoWidth  = static_cast<unsigned>(capturedVideo.get(CV_CAP_PROP_FRAME_WIDTH));
+	const unsigned videoHeight = static_cast<unsigned>(capturedVideo.get(CV_CAP_PROP_FRAME_HEIGHT));
+	unsigned       stepSLIC    = static_cast<unsigned>(sqrt((videoHeight * videoWidth) / superpixelNumber) + 0.5);
+
+	/* Parameters used when applying SLIC algorithm to video sequences. */
+	/* Decide if frames are to be processed independently or the result
+	   obtained after elaborating one frame should be used to initialize 
+	   the next frame (more details are found in the paper). */
+	bool                 connectedFrames = true;
+	SLICElaborationMode  SLICMode        = ERROR_THRESHOLD;
+	VideoElaborationMode VideoMode       = KEY_FRAMES_NOISE;
+	/* Use a key frame every keyFramesRatio frames. */
+	unsigned             keyFramesRatio  = 30;
+	/* Standard deviation of the Gaussian noise. */
+	double               GaussianStdDev  = static_cast<double>(stepSLIC / 5);
+
+	/* Call function to perform SLIC algorithm operations on video. */
+	VideoSLIC(
+		capturedVideo,
+		superpixelNumber,
+		spatialDistanceWeight,
+		connectedFrames,
+		SLICMode,
+		iterationNumber,
+		errorThreshold,
+		VideoMode,
+		keyFramesRatio,
+		GaussianStdDev);
+
+	return 0;
+}
+
+int VideoSLIC(
+	VideoCapture&        capturedVideo,
+	unsigned             superpixelNumber,
+	unsigned             spatialDistanceWeight,
+	bool                 connectedFrames,
+	SLICElaborationMode  SLICMode,
+	unsigned             iterationNumber,
+	double               errorThreshold,
+	VideoElaborationMode videoMode,
+	unsigned             keyFramesRatio,
+	double               GaussianStdDev
+	)
+{
 	/* Get video width and height. */
 	const unsigned videoWidth  = static_cast<unsigned>(capturedVideo.get(CV_CAP_PROP_FRAME_WIDTH));
 	const unsigned videoHeight = static_cast<unsigned>(capturedVideo.get(CV_CAP_PROP_FRAME_HEIGHT));
 
-	/* A container which will hold a video frame for
-	   the necessary time for its elaboration. */
-	Mat currentFrame;
-
-	/* SLIC algorithm parameters. */
-	unsigned spatialDistanceWeight = 30;
-	unsigned superpixelNumber      = 1000;
-
-	/* Round the sampling step to the nearest integer. */
+	/* Compute the sampling step and round to the nearest integer. */
 	unsigned stepSLIC = static_cast<unsigned>(sqrt((videoHeight * videoWidth) / superpixelNumber) + 0.5);
+
+	/* Create an object for SLIC algorithm operations. */
+	SLIC* SLICFrame = new SLIC();
+
+	/* A container which will hold a video frame for
+	   the time necessary for its elaboration. */
+	Mat currentFrame;
 
 	/* Video frames counter. */
 	unsigned framesNumber = 0;
-
-	/* Open a new window where to play the imported video. */
-	namedWindow(windowName, CV_WINDOW_AUTOSIZE);
-
-	SLIC* SLICVideoElaboration = new SLIC();
 
 	/* Debug data. */
 	double totalTime    = 0;
@@ -65,19 +139,18 @@ int main(int argc, char *argv[])
 	double avgTime      = 0;
 	double stdDeviation = 0;
 
+	/* Output window name. */
+	const string windowName = "VideoSLIC";
+
+	/* Open a new window where to play the video. */
+	namedWindow(windowName, CV_WINDOW_AUTOSIZE);
+
 	/* Enter an infinite cycle to elaborate the video until its last frame. */
 	while (true)
 	{
+		/* Measure time before processing a video frame. */
 		boost::chrono::high_resolution_clock::time_point startPoint =
 			boost::chrono::high_resolution_clock::now();
-
-		/* Re-initialize SLIC each 30 frames. */
-		if ((framesNumber != 0) && (framesNumber % 30 == 0))
-		{
-			if (SLICVideoElaboration != NULL)
-				delete SLICVideoElaboration;
-			SLICVideoElaboration = new SLIC();
-		}
 
 		/* Take the next frame from the video. */
 		capturedVideo >> currentFrame;
@@ -87,40 +160,45 @@ int main(int argc, char *argv[])
 		if (currentFrame.data == NULL)
 			break;
 
-		/* Convert the frame from RGB to YCrCb color space
+		/* Convert the frame from RGB to LAB color space
 		   before SLIC elaboration. */
 		cvtColor(currentFrame, currentFrame, CV_BGR2Lab);
 
 		/* Perform the SLIC algorithm operations. */
-		SLICVideoElaboration->createSuperpixels(
-			currentFrame, stepSLIC, spatialDistanceWeight, false);
-		SLICVideoElaboration->enforceConnectivity(currentFrame);
-		//SLICVideoElaboration->colorSuperpixels(currentFrame);
+		SLICFrame->createSuperpixels(
+			currentFrame, stepSLIC, spatialDistanceWeight, iterationNumber, errorThreshold,
+			SLICMode, videoMode, keyFramesRatio, GaussianStdDev, connectedFrames);
+		//SLICFrame->enforceConnectivity(currentFrame);
+		//SLICFrame->colorSuperpixels(currentFrame);
 
 		/* Convert frame back to RGB. */
 		cvtColor(currentFrame, currentFrame, CV_Lab2BGR);
 
-		SLICVideoElaboration->drawClusterContours(currentFrame, Vec3b(0, 0, 255)/*, Rect(videoWidth / 2, 0, videoWidth / 2, videoHeight)*/);
+		SLICFrame->drawClusterContours(currentFrame, Vec3b(0, 0, 255)/*, Rect(videoWidth / 2, 0, videoWidth / 2, videoHeight)*/);
+		//SLICFrame->drawClusterCentres(currentFrame, Scalar(0, 0, 255));
 
+		/* Measure time after processing a video frame. */
 		boost::chrono::high_resolution_clock::time_point endPoint =
 			boost::chrono::high_resolution_clock::now();
 
+		/* Get frame processing time in milliseconds. */
 		boost::chrono::duration<int, boost::milli> elapsedTime =
 			boost::chrono::duration_cast<boost::chrono::milliseconds>(endPoint - startPoint);
 
 		++framesNumber;
-		//SLICVideoElaboration->drawInformation(currentFrame, framesNumber, elapsedTime.count());
+		//SLICFrame->drawInformation(currentFrame, framesNumber, elapsedTime.count());
 
 		/* Show frame in the window. */
 		imshow(windowName, currentFrame);
 
+		/* Compute some statistics and print them on screen. */
 		totalTime  += elapsedTime.count();
 		totalTime2 += elapsedTime.count() * elapsedTime.count();
 		avgTime     = totalTime / framesNumber;
 
 		stdDeviation = sqrt(framesNumber * totalTime2 - totalTime * totalTime) / framesNumber;
 
-		cout << "Frame: " << framesNumber << "   ora: " << elapsedTime.count() << "   tempo medio: "
+		cout << "Frame: " << framesNumber << "   ex. time now: " << elapsedTime.count() << "   average ex. time: "
 			<< avgTime << "   stdDev: " << stdDeviation << endl << endl;
 
 		/* End program on ESC press. */
@@ -129,8 +207,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* Free used memory before closing the program. */
-	if (SLICVideoElaboration != NULL)
-		delete SLICVideoElaboration;
+	if (SLICFrame != NULL)
+		delete SLICFrame;
 
 	/* Close window after video processing. */
 	cv::destroyAllWindows();
