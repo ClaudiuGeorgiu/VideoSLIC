@@ -6,3 +6,9 @@ This project contains the source code used to obtain the results described in th
 * OpenCV
 * Intel TBB (used for parallel execution of the code)
 * Boost
+
+
+
+## License
+
+You are free to use this code under the [MIT License](https://github.com/ClaudiuGeorgiu/VideoSLIC/blob/master/LICENSE).
